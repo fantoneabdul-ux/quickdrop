@@ -101,7 +101,25 @@ const Bk=({onClick})=>(<button onClick={onClick} style={{background:"none",borde
 const Toast=({msg,type})=>(<div style={{position:"absolute",top:14,left:14,right:14,zIndex:9999,background:type==="err"?"#DC2626":G.accent,color:"#fff",borderRadius:16,padding:"13px 18px",fontWeight:800,fontSize:14,boxShadow:"0 10px 36px rgba(0,0,0,.5)",animation:"sd .3s ease",display:"flex",gap:10,alignItems:"center"}}><span>{type==="err"?"❌":"✅"}</span>{msg}</div>);
 const Frame=({children,bg})=>(<div style={{width:"100%",maxWidth:430,margin:"0 auto",height:"100vh",background:bg||G.dark,fontFamily:"'Segoe UI',system-ui,sans-serif",display:"flex",flexDirection:"column",overflow:"hidden",position:"relative"}}>{children}<style>{`@keyframes sd{from{transform:translateY(-14px);opacity:0}to{transform:translateY(0);opacity:1}} @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}} @keyframes blink{0%,100%{opacity:.2}50%{opacity:1}} @keyframes spin{to{transform:rotate(360deg)}} @keyframes ping{0%,100%{opacity:.5;transform:translate(-50%,-50%) scale(1)}50%{opacity:0;transform:translate(-50%,-50%) scale(2.5)}} *{box-sizing:border-box;-webkit-tap-highlight-color:transparent} input::placeholder{color:#334155} ::-webkit-scrollbar{display:none}`}</style></div>);
 function SB({pwd}){const s=pwd.length;return(<div style={{marginBottom:16}}><div style={{display:"flex",gap:4,marginBottom:4}}>{[1,2,3,4].map(i=><div key={i} style={{flex:1,height:4,borderRadius:2,background:s>=i*3?(s>=10?G.accent:G.yellow):G.border,transition:"background .3s"}}/>)}</div><div style={{color:G.muted,fontSize:11}}>{s<6?"Too short":s<10?"Moderate":"Strong ✓"}</div></div>);}
-function CP({value,onChange}){return(<div style={{marginBottom:16}}><div style={{color:G.muted,fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>CITY</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{[["Jos","🏔️","Flagship"],["Abuja","🏛️","Flagship"],["Lagos","🌊","Active"],["Kano","🌅","Active"]].map(([c,ic,tag])=><div key={c} onClick={()=>onChange(c)} style={{background:value===c?"#0D2B1E":G.card2,border:`1.5px solid ${value===c?G.accent:G.border}`,borderRadius:12,padding:"12px 10px",cursor:"pointer",display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:18}}>{ic}</span><div><div style={{color:"#fff",fontWeight:700,fontSize:13}}>{c}</div><div style={{color:value===c?G.accent:G.muted,fontSize:10,fontWeight:700}}>{tag}</div></div></div>)}</div></div>);}
+function CP({value,onChange}){
+  const cities=[["Jos","🏔️","Flagship"],["Abuja","🏛️","Flagship"],["Lagos","🌊","Active"],["Kano","🌅","Active"]];
+  return(
+    <div style={{marginBottom:16}}>
+      <div style={{color:G.muted,fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>CITY</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        {cities.map(([c,ic,tag])=>(
+          <div key={c} onClick={()=>onChange(c)} style={{background:value===c?"#0D2B1E":G.card2,border:`1.5px solid ${value===c?G.accent:G.border}`,borderRadius:12,padding:"12px 10px",cursor:"pointer",display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:18}}>{ic}</span>
+            <div>
+              <div style={{color:"#fff",fontWeight:700,fontSize:13}}>{c}</div>
+              <div style={{color:value===c?G.accent:G.muted,fontSize:10,fontWeight:700}}>{tag}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* ─── ADDRESS SEARCH ──────────────────────────────── */
 function AS({placeholder,value,onChange,onSelect,dot}){
@@ -573,7 +591,6 @@ function CHome({user,db,dispatch,pop}){
   const [showP,setShowP]=useState(false);const [paid,setPaid]=useState(false);
   const [pct,setPct]=useState(0);const [rx,setRx]=useState(8);const [promo,setPromo]=useState(0);
   const ref=useRef(null);
-  const cf=getCF||gCF;const cs=gCS;
   const cityFare=gCF(tA||fA,db.fareConfig);
   const citySurge=gCS(tA||fA,db.surge);
   const online=db.riders.filter(r=>r.online);
