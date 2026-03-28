@@ -200,56 +200,171 @@ function RMM({riders,onSelect,onCancel,from,to,km}){
 
 /* ─── PAYMENT MODAL ───────────────────────────────── */
 function PM({amount,onSuccess,onClose}){
-  const [method,setM]=useState(null);
+  const [screen,setScreen]=useState("options"); // options | paystack | cash | transfer
   const [loading,setL]=useState(false);
-  const [step,setStep]=useState(0);
-  const [f1,setF1]=useState("");const [f2,setF2]=useState("");const [f3,setF3]=useState("");
-  const [p,setP]=useState("");const [o,setO]=useState("");const [td,setTd]=useState(false);
-  const pay=()=>{setL(true);setTimeout(()=>{setL(false);onSuccess(method);},1800);};
+  const [psStep,setPsStep]=useState(0);
+  const [cardNum,setCardNum]=useState("");
+  const [expiry,setExpiry]=useState("");
+  const [cvv,setCvv]=useState("");
+  const [pin,setPin]=useState("");
+  const [otp,setOtp]=useState("");
+  const [transferDone,setTransferDone]=useState(false);
+  const ref=useState(()=>"QD-"+Date.now().toString().slice(-6))[0];
+
+  const pay=(method)=>{
+    setL(true);
+    setTimeout(()=>{setL(false);onSuccess(method);},1800);
+  };
+
   return(
     <div style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(3,7,18,.96)",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
       <div style={{background:G.card,borderRadius:"24px 24px 0 0",padding:"24px 20px 48px",maxHeight:"90vh",overflowY:"auto",border:`1px solid ${G.border}`}}>
         <div style={{width:40,height:4,borderRadius:2,background:G.border,margin:"0 auto 20px"}}/>
+
+        {/* Header */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <div><div style={{color:"#fff",fontWeight:900,fontSize:18}}>Choose Payment</div><div style={{color:G.muted,fontSize:13,marginTop:2}}>Total: <span style={{color:G.accent,fontWeight:900}}>{N(amount)}</span></div></div>
-          <button onClick={onClose} style={{background:G.card2,border:`1px solid ${G.border}`,borderRadius:10,padding:"7px 14px",color:G.muted,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>✕</button>
+          <div>
+            <div style={{color:"#fff",fontWeight:900,fontSize:18}}>
+              {screen==="options"?"Choose Payment":screen==="paystack"?"Paystack Checkout":screen==="cash"?"Cash on Delivery":"Bank Transfer"}
+            </div>
+            <div style={{color:G.muted,fontSize:13,marginTop:2}}>Total: <span style={{color:G.accent,fontWeight:900}}>{N(amount)}</span></div>
+          </div>
+          <button onClick={screen==="options"?onClose:()=>{setScreen("options");setPsStep(0);}} style={{background:G.card2,border:`1px solid ${G.border}`,borderRadius:10,padding:"7px 14px",color:G.muted,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>
+            {screen==="options"?"✕":"← Back"}
+          </button>
         </div>
-        {!method&&(
+
+        {/* OPTIONS SCREEN */}
+        {screen==="options"&&(
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            {[{id:"paystack",ic:"💳",lb:"Pay with Paystack",sub:"Card • Bank Transfer • USSD",bg:"linear-gradient(135deg,#00C3FF,#0066FF)",badge:"Secure"},{id:"cash",ic:"💵",lb:"Cash on Delivery",sub:"Pay rider when package arrives",bg:"linear-gradient(135deg,#22C55E,#16A34A)"},{id:"transfer",ic:"🏦",lb:"Bank Transfer",sub:"Transfer to QuickDrop account",bg:"linear-gradient(135deg,#A78BFA,#7C3AED)"}].map(opt=>(
-              <div key={opt.id} onClick={()=>setM(opt.id)} style={{background:G.card2,borderRadius:18,padding:"18px",border:`1px solid ${G.border}`,cursor:"pointer",display:"flex",alignItems:"center",gap:14}}>
-                <div style={{width:52,height:52,borderRadius:16,background:opt.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{opt.ic}</div>
-                <div style={{flex:1}}><div style={{color:"#fff",fontWeight:800,fontSize:15}}>{opt.lb}</div><div style={{color:G.muted,fontSize:12,marginTop:2}}>{opt.sub}</div></div>
-                {opt.badge&&<div style={{color:G.accent,fontSize:11,fontWeight:700,background:G.accent+"22",borderRadius:8,padding:"3px 9px"}}>{opt.badge}</div>}
-                <div style={{color:G.muted,fontSize:20}}>›</div>
+            <div onClick={()=>setScreen("paystack")} style={{background:G.card2,borderRadius:18,padding:"18px",border:`1px solid ${G.border}`,cursor:"pointer",display:"flex",alignItems:"center",gap:14,transition:"border-color .2s"}}>
+              <div style={{width:52,height:52,borderRadius:16,background:"linear-gradient(135deg,#00C3FF,#0066FF)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>💳</div>
+              <div style={{flex:1}}>
+                <div style={{color:"#fff",fontWeight:800,fontSize:15}}>Pay with Paystack</div>
+                <div style={{color:G.muted,fontSize:12,marginTop:2}}>Card • Bank Transfer • USSD</div>
               </div>
-            ))}
+              <div style={{color:G.accent,fontSize:11,fontWeight:700,background:G.accent+"22",borderRadius:8,padding:"3px 9px"}}>Secure</div>
+              <div style={{color:G.muted,fontSize:20}}>›</div>
+            </div>
+
+            <div onClick={()=>setScreen("cash")} style={{background:G.card2,borderRadius:18,padding:"18px",border:`1px solid ${G.border}`,cursor:"pointer",display:"flex",alignItems:"center",gap:14}}>
+              <div style={{width:52,height:52,borderRadius:16,background:"linear-gradient(135deg,#22C55E,#16A34A)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>💵</div>
+              <div style={{flex:1}}>
+                <div style={{color:"#fff",fontWeight:800,fontSize:15}}>Cash on Delivery</div>
+                <div style={{color:G.muted,fontSize:12,marginTop:2}}>Pay rider when package arrives</div>
+              </div>
+              <div style={{color:G.muted,fontSize:20}}>›</div>
+            </div>
+
+            <div onClick={()=>setScreen("transfer")} style={{background:G.card2,borderRadius:18,padding:"18px",border:`1px solid ${G.border}`,cursor:"pointer",display:"flex",alignItems:"center",gap:14}}>
+              <div style={{width:52,height:52,borderRadius:16,background:"linear-gradient(135deg,#A78BFA,#7C3AED)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>🏦</div>
+              <div style={{flex:1}}>
+                <div style={{color:"#fff",fontWeight:800,fontSize:15}}>Bank Transfer</div>
+                <div style={{color:G.muted,fontSize:12,marginTop:2}}>Transfer to QuickDrop account</div>
+              </div>
+              <div style={{color:G.muted,fontSize:20}}>›</div>
+            </div>
+
+            <div style={{marginTop:8,background:G.card2,borderRadius:14,padding:"12px 16px",border:`1px solid ${G.border}`,display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:14}}>🔒</span>
+              <span style={{color:G.muted,fontSize:12}}>All payments are secured and encrypted</span>
+            </div>
           </div>
         )}
-        {method==="paystack"&&(<>
-          <Bk onClick={()=>setM(null)}/>
-          <div style={{textAlign:"center",marginBottom:20}}><div style={{width:60,height:60,borderRadius:18,background:"linear-gradient(135deg,#00C3FF,#0066FF)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,margin:"0 auto 10px"}}>💳</div><div style={{color:"#fff",fontWeight:800,fontSize:16}}>Paystack Checkout</div><div style={{color:G.accent,fontWeight:900,fontSize:24,marginTop:4}}>{N(amount)}</div></div>
-          {step===0&&(<><div style={{color:G.muted,fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:6}}>CARD NUMBER</div><input value={f1} onChange={e=>setF1(e.target.value.replace(/\D/g,"").slice(0,16))} placeholder="0000 0000 0000 0000" style={{width:"100%",padding:"13px 16px",borderRadius:14,border:`1.5px solid ${G.border}`,background:G.card2,color:G.text,fontSize:16,fontFamily:"inherit",outline:"none",boxSizing:"border-box",letterSpacing:2,marginBottom:16}}/><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}><div><div style={{color:G.muted,fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:6}}>EXPIRY</div><input value={f2} onChange={e=>setF2(e.target.value)} placeholder="MM/YY" style={{width:"100%",padding:"13px 14px",borderRadius:14,border:`1.5px solid ${G.border}`,background:G.card2,color:G.text,fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/></div><div><div style={{color:G.muted,fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:6}}>CVV</div><input value={f3} onChange={e=>setF3(e.target.value.slice(0,3))} placeholder="•••" type="password" style={{width:"100%",padding:"13px 14px",borderRadius:14,border:`1.5px solid ${G.border}`,background:G.card2,color:G.text,fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/></div></div><PBtn onClick={()=>setStep(1)}>Continue →</PBtn></>)}
-          {step===1&&(<><div style={{color:G.muted,fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:6}}>ENTER PIN</div><input value={p} onChange={e=>setP(e.target.value.slice(0,4))} placeholder="••••" type="password" style={{width:"100%",padding:"13px 16px",borderRadius:14,border:`1.5px solid ${G.border}`,background:G.card2,color:G.text,fontSize:28,fontFamily:"inherit",outline:"none",boxSizing:"border-box",textAlign:"center",letterSpacing:8,marginBottom:20}}/><PBtn onClick={()=>setStep(2)}>Verify PIN →</PBtn></>)}
-          {step===2&&(<><div style={{background:"#0D2B1E",borderRadius:14,padding:16,marginBottom:16,border:`1px solid ${G.accent}30`}}><div style={{color:G.accent,fontWeight:700,fontSize:13,marginBottom:4}}>📱 OTP Sent</div><div style={{color:G.muted,fontSize:12}}>Check your registered phone number</div></div><div style={{color:G.muted,fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:6}}>ENTER OTP</div><input value={o} onChange={e=>setO(e.target.value.slice(0,6))} placeholder="000000" style={{width:"100%",padding:"13px 16px",borderRadius:14,border:`1.5px solid ${G.border}`,background:G.card2,color:G.text,fontSize:24,fontFamily:"inherit",outline:"none",boxSizing:"border-box",textAlign:"center",letterSpacing:8,marginBottom:20}}/><PBtn onClick={pay} loading={loading}>Confirm Payment</PBtn></>)}
-          <div style={{color:"#334155",fontSize:11,textAlign:"center",marginTop:12}}>🔒 256-bit SSL • PCI DSS Level 1</div>
-        </>)}
-        {method==="cash"&&(<>
-          <Bk onClick={()=>setM(null)}/>
-          <div style={{background:"#0D2B1E",borderRadius:20,padding:24,border:`1px solid ${G.accent}30`,marginBottom:20,textAlign:"center"}}><div style={{fontSize:52,marginBottom:10}}>💵</div><div style={{color:"#fff",fontWeight:800,fontSize:18,marginBottom:8}}>Cash on Delivery</div><div style={{color:G.accent,fontWeight:900,fontSize:30,marginBottom:8}}>{N(amount)}</div><div style={{color:G.muted,fontSize:13,lineHeight:1.6}}>Have this exact amount ready to hand to your rider.</div></div>
-          {["Have exact change ready","Collect receipt from rider","Confirm delivery in app"].map((t,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"center",marginBottom:14}}><div style={{width:26,height:26,borderRadius:13,background:G.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:12,flexShrink:0}}>{i+1}</div><div style={{color:"#CBD5E1",fontSize:14}}>{t}</div></div>))}
-          <PBtn onClick={pay} loading={loading}>Confirm — Pay on Delivery 💵</PBtn>
-        </>)}
-        {method==="transfer"&&(<>
-          <Bk onClick={()=>setM(null)}/>
-          <div style={{background:G.card2,borderRadius:20,padding:20,border:`1px solid ${G.border}`,marginBottom:16}}>
-            <div style={{color:G.muted,fontSize:12,marginBottom:4}}>Transfer exactly</div>
-            <div style={{color:G.accent,fontWeight:900,fontSize:30,marginBottom:16}}>{N(amount)}</div>
-            {[["Bank","Guaranty Trust Bank (GTB)"],["Account Name","QuickDrop Nigeria Ltd"],["Account No.","0123456789"],["Reference","QD-"+Date.now().toString().slice(-6)]].map(([k,v])=>(<div key={k} style={{display:"flex",justifyContent:"space-between",marginBottom:12,paddingBottom:12,borderBottom:`1px solid ${G.border}20`}}><span style={{color:G.muted,fontSize:13}}>{k}</span><span style={{color:"#fff",fontWeight:700,fontSize:13,textAlign:"right",maxWidth:"58%"}}>{v}</span></div>))}
+
+        {/* PAYSTACK SCREEN */}
+        {screen==="paystack"&&(
+          <div>
+            <div style={{textAlign:"center",marginBottom:20}}>
+              <div style={{width:60,height:60,borderRadius:18,background:"linear-gradient(135deg,#00C3FF,#0066FF)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,margin:"0 auto 10px"}}>💳</div>
+              <div style={{color:G.accent,fontWeight:900,fontSize:28}}>{N(amount)}</div>
+            </div>
+            {psStep===0&&(
+              <>
+                <div style={{color:G.muted,fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:6}}>CARD NUMBER</div>
+                <input value={cardNum} onChange={e=>setCardNum(e.target.value.replace(/\D/g,"").slice(0,16))} placeholder="0000 0000 0000 0000" style={{width:"100%",padding:"13px 16px",borderRadius:14,border:`1.5px solid ${G.border}`,background:G.card2,color:G.text,fontSize:16,fontFamily:"inherit",outline:"none",boxSizing:"border-box",letterSpacing:2,marginBottom:16}}/>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
+                  <div>
+                    <div style={{color:G.muted,fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:6}}>EXPIRY</div>
+                    <input value={expiry} onChange={e=>setExpiry(e.target.value)} placeholder="MM/YY" style={{width:"100%",padding:"13px 14px",borderRadius:14,border:`1.5px solid ${G.border}`,background:G.card2,color:G.text,fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+                  </div>
+                  <div>
+                    <div style={{color:G.muted,fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:6}}>CVV</div>
+                    <input value={cvv} onChange={e=>setCvv(e.target.value.slice(0,3))} placeholder="•••" type="password" style={{width:"100%",padding:"13px 14px",borderRadius:14,border:`1.5px solid ${G.border}`,background:G.card2,color:G.text,fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+                  </div>
+                </div>
+                <PBtn onClick={()=>setPsStep(1)}>Continue →</PBtn>
+              </>
+            )}
+            {psStep===1&&(
+              <>
+                <div style={{color:G.muted,fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:6}}>ENTER CARD PIN</div>
+                <input value={pin} onChange={e=>setPin(e.target.value.slice(0,4))} placeholder="••••" type="password" style={{width:"100%",padding:"13px 16px",borderRadius:14,border:`1.5px solid ${G.border}`,background:G.card2,color:G.text,fontSize:28,fontFamily:"inherit",outline:"none",boxSizing:"border-box",textAlign:"center",letterSpacing:8,marginBottom:20}}/>
+                <PBtn onClick={()=>setPsStep(2)}>Verify PIN →</PBtn>
+              </>
+            )}
+            {psStep===2&&(
+              <>
+                <div style={{background:"#0D2B1E",borderRadius:14,padding:16,marginBottom:16,border:`1px solid ${G.accent}30`}}>
+                  <div style={{color:G.accent,fontWeight:700,fontSize:13,marginBottom:4}}>📱 OTP Sent</div>
+                  <div style={{color:G.muted,fontSize:12}}>Check your registered phone number</div>
+                </div>
+                <div style={{color:G.muted,fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:6}}>ENTER OTP</div>
+                <input value={otp} onChange={e=>setOtp(e.target.value.slice(0,6))} placeholder="000000" style={{width:"100%",padding:"13px 16px",borderRadius:14,border:`1.5px solid ${G.border}`,background:G.card2,color:G.text,fontSize:24,fontFamily:"inherit",outline:"none",boxSizing:"border-box",textAlign:"center",letterSpacing:8,marginBottom:20}}/>
+                <PBtn onClick={()=>pay("paystack")} loading={loading}>Confirm Payment ✅</PBtn>
+              </>
+            )}
+            <div style={{color:"#334155",fontSize:11,textAlign:"center",marginTop:14}}>🔒 256-bit SSL Encryption • PCI DSS Level 1</div>
           </div>
-          <div style={{background:"#0D2B1E",borderRadius:14,padding:"12px 16px",marginBottom:16,border:`1px solid ${G.accent}30`}}><div style={{color:G.accent,fontSize:12,fontWeight:700}}>⚠️ Include the reference number in your transfer description.</div></div>
-          {!td?<PBtn onClick={()=>setTd(true)}>I've Made the Transfer ✓</PBtn>:<PBtn onClick={pay} loading={loading}>Confirm & Book Rider →</PBtn>}
-        </>)}
+        )}
+
+        {/* CASH SCREEN */}
+        {screen==="cash"&&(
+          <div>
+            <div style={{background:"#0D2B1E",borderRadius:20,padding:24,border:`1px solid ${G.accent}30`,marginBottom:20,textAlign:"center"}}>
+              <div style={{fontSize:52,marginBottom:10}}>💵</div>
+              <div style={{color:"#fff",fontWeight:800,fontSize:18,marginBottom:8}}>Cash on Delivery</div>
+              <div style={{color:G.accent,fontWeight:900,fontSize:32,marginBottom:8}}>{N(amount)}</div>
+              <div style={{color:G.muted,fontSize:13,lineHeight:1.6}}>Have this exact amount ready when your rider arrives.</div>
+            </div>
+            {["Have exact change ready","Collect paper receipt from rider","Confirm delivery in the app after"].map((t,i)=>(
+              <div key={i} style={{display:"flex",gap:12,alignItems:"center",marginBottom:16}}>
+                <div style={{width:28,height:28,borderRadius:14,background:G.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:13,flexShrink:0}}>{i+1}</div>
+                <div style={{color:"#CBD5E1",fontSize:14}}>{t}</div>
+              </div>
+            ))}
+            <PBtn onClick={()=>pay("cash")} loading={loading}>Confirm — Pay on Delivery 💵</PBtn>
+          </div>
+        )}
+
+        {/* TRANSFER SCREEN */}
+        {screen==="transfer"&&(
+          <div>
+            <div style={{background:"linear-gradient(135deg,#A78BFA22,#7C3AED11)",borderRadius:20,padding:20,border:`1px solid #A78BFA40`,marginBottom:16}}>
+              <div style={{color:G.muted,fontSize:12,marginBottom:4}}>Transfer exactly this amount</div>
+              <div style={{color:"#A78BFA",fontWeight:900,fontSize:34,marginBottom:20}}>{N(amount)}</div>
+              {[
+                ["🏦 Bank","Guaranty Trust Bank (GTB)"],
+                ["👤 Account Name","QuickDrop Nigeria Ltd"],
+                ["🔢 Account No.","0123456789"],
+                ["📋 Reference",ref],
+              ].map(([k,v])=>(
+                <div key={k} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,paddingBottom:14,borderBottom:`1px solid ${G.border}30`}}>
+                  <span style={{color:G.muted,fontSize:13}}>{k}</span>
+                  <span style={{color:"#fff",fontWeight:700,fontSize:14,textAlign:"right",maxWidth:"55%"}}>{v}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{background:"#0D2B1E",borderRadius:14,padding:"14px 16px",marginBottom:20,border:`1px solid ${G.accent}30`}}>
+              <div style={{color:G.accent,fontSize:13,fontWeight:700,marginBottom:4}}>⚠️ Important</div>
+              <div style={{color:G.muted,fontSize:12,lineHeight:1.6}}>Include the reference number <strong style={{color:"#fff"}}>{ref}</strong> in your transfer narration so we can match your payment instantly.</div>
+            </div>
+            {!transferDone
+              ? <PBtn onClick={()=>setTransferDone(true)}>I've Completed the Transfer ✓</PBtn>
+              : <PBtn onClick={()=>pay("transfer")} loading={loading}>Confirm & Book My Rider →</PBtn>
+            }
+          </div>
+        )}
       </div>
     </div>
   );
